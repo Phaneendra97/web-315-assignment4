@@ -10,7 +10,7 @@
       let selectedSrcStation = "";
       let selectedDestStation = "";
       let tripsArray = new Array();
-      let closestTimer = null;
+      let closestScheduleTimer = null;
       $.get("http://localhost:5000/stations", function (data, status) {
         srcstationsArray = data.data.station;
         stationsList("srcstationsList");
@@ -126,13 +126,17 @@
 
       function generateTable() {
         //Build an array containing Customer records.
+        closestScheduleTimer = null;
         tripsArray = [];
         tripsArray.push(["Sl No", "Dept. Time", "Fare", "ETA"]);
         let index = 1;
         tripDetails.forEach((element) => {
           let dateString = element["@origTimeMin"];
-          let dateObj = new Date("01/01/1970 " + dateString);
-          console.log(dateObj.getMinutes());
+          let dateObjSchedule = new Date("01/01/1970 " + dateString);
+          let now = Date.now();
+          if (dateObjSchedule - now > 0 && dateObjSchedule != null) {
+            closestScheduleTimer = dateObjSchedule;
+          }
 
           tripsArray.push([
             index,
@@ -171,13 +175,11 @@
         dvTable.appendChild(table);
       }
 
-      setInterval(updateTrip, 30000);
+      setInterval(updateTripDetails, 30000);
 
-      function updateTrip() {
+      function updateTripDetails() {
         const tableElement = document.getElementById("dvTable");
-        console.log("@here", tableElement);
         if (tableElement != null) {
-          console.log("@here2");
           $.get(
             "http://localhost:5000/trips/source/" +
               selectedSrcStation +
@@ -190,6 +192,7 @@
           );
         }
       }
+      // closestScheduleTimer
     </script>
   </head>
   <body>

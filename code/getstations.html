@@ -10,6 +10,7 @@
       let selectedSrcStation = "";
       let selectedDestStation = "";
       let tripsArray = new Array();
+      let closestTimer = null;
       $.get("http://localhost:5000/stations", function (data, status) {
         srcstationsArray = data.data.station;
         stationsList("srcstationsList");
@@ -129,6 +130,10 @@
         tripsArray.push(["Sl No", "Dept. Time", "Fare", "ETA"]);
         let index = 1;
         tripDetails.forEach((element) => {
+          let dateString = element["@origTimeMin"];
+          let dateObj = new Date("01/01/1970 " + dateString);
+          console.log(dateObj.getMinutes());
+
           tripsArray.push([
             index,
             element["@origTimeMin"],

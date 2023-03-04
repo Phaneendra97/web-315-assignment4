@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script>
+      let srcstationsArray = [];
+      let deststationsArray = [];
+      let stationData = {};
+      let tripDetails = {};
+      let selectedSrcStation = "";
+      let selectedDestStation = "";
+      let tripsArray = new Array();
+      $.get("http://localhost:5000/stations", function (data, status) {
+        srcstationsArray = data.data.station;
+        stationsList("srcstationsList");
+      });
+      function stationsList(id) {
+        let elm = document.getElementById(id), // get the select
+          df = document.createDocumentFragment(); // create a document fragment to hold the options while we create them
+        let stationsArray = [];
+        if (id == "srcstationsList") {
+          stationsArray = srcstationsArray;
+        } else {
+          stationsArray = deststationsArray;
+        }
+
+        for (var i = 0; i < stationsArray.length; i++) {
+          if (i == 0) {
+            var option = document.createElement("option"); // create the option element
+            option.value = i; // set the value property
+            option.appendChild(document.createTextNode("select a station")); // set the textContent in a safe way.
+            df.appendChild(option); // append the option to the document fragment
+          } else {
+            var option = document.createElement("option"); // create the option element
+            option.value = i; // set the value property
+            option.appendChild(document.createTextNode(stationsArray[i].name)); // set the textContent in a safe way.
+            df.appendChild(option); // append the option to the document fragment
+          }
+        }
+        elm.appendChild(df); // append the document fragment to the DOM. this is the better way rather than setting innerHTML a bunch of times (or even once with a long string)
+      }
+
+      function getStationDetails(sel) {
+        deststationsArray = [];
+        const destStationElement = document.getElementById("deststationsList");
+        $(destStationElement).children().remove();
+        if (sel.value != 0) {
+          const source = srcstationsArray[sel.value].abbr;
+          selectedSrcStation = source;
+          deststationsArray = srcstationsArray.filter((element) => {
+            return element.abbr !== srcstationsArray[sel.value].abbr;
+          });
+          stationsList("deststationsList");
+          $.get(
+            "http://localhost:5000/station/source/" + source,
+            function (data, status) {
+              stationData = data.station;
+              loadStationDetails();
+            }
+          );
+        }
+      }
+
+      function getTripDetails(sel) {
+        if (sel.value != 0) {
+          selectedDestStation = deststationsArray[sel.value].abbr;
+          $.get(
+            "http://localhost:5000/trips/source/" +
+              selectedSrcStation +
+              "/dest/" +
+              selectedDestStation,
+            function (data, status) {
+              tripDetails = data.trip.schedule.request.trip;
+              loadTripDetails();
+            }
+          );
+        }
+      }
+
+      function loadStationDetails() {
+        let stationDetailsDOM = document.getElementById("stationDetails");
+        stationDetailsDOM.style = "width: 25vw; float: right; padding-left: 10px; border-width: 2px; border-color: black; border-style: solid;";
+        
+        let srcHeading = document.getElementById("srcHeading");
+        srcHeading.innerHTML = "Source Station details";
+
+        let srcName = document.getElementById("srcName");
+        srcName.innerHTML = "Name: " + stationData.name;
+
+        let srcAbbr = document.getElementById("srcAbbr");
+        srcAbbr.innerHTML = "Abbr: " + stationData.abbr;
+
+        let srcAddress = document.getElementById("srcAddress");
+        srcAddress.innerHTML = "Address: " + stationData.address;
+
+        let srcCity = document.getElementById("srcCity");
+        srcCity.innerHTML = "City: " + stationData.city;
+
+        let srcCounty = document.getElementById("srcCounty");
+        srcCounty.innerHTML = "County: " + stationData.county;
+
+        let srcState = document.getElementById("srcState");
+        srcState.innerHTML = "State: " + stationData.state;
+
+        let srcZipcode = document.getElementById("srcZipcode");
+        srcZipcode.innerHTML = "City: " + stationData.zipcode;
+      }
+
+      function loadTripDetails() {
+        const tripDetailsElement = document.getElementById("tripDetails");
+        $(tripDetailsElement).children().remove();
+        let tripHeading = document.createElement("h2"); // create the option element
+        tripHeading.innerHTML =
+          "Trip details between: " +
+          selectedSrcStation +
+          "-" +
+          selectedDestStation; // set the value property
+        let tableElement = document.createElement("div");
+        tableElement.id = "dvTable";
+        tripDetailsElement.appendChild(tripHeading);
+        tripDetailsElement.appendChild(tableElement);
+        generateTable();
+      }
+
+      function generateTable() {
+        //Build an array containing Customer records.
+        tripsArray = [];
+        tripsArray.push(["Sl No", "Dept. Time", "Fare", "ETA"]);
+        let index = 1;
+        tripDetails.forEach((element) => {
+          tripsArray.push([
+            index,
+            element["@origTimeMin"],
+            element["@fare"],
+            element["@destTimeMin"],
+          ]);
+        });
+
+        //Create a HTML Table element.
+        var table = document.createElement("TABLE");
+        table.border = "1";
+
+        //Get the count of columns.
+        var columnCount = tripsArray[0].length;
+
+        //Add the header row.
+        var row = table.insertRow(-1);
+        for (var i = 0; i < columnCount; i++) {
+          var headerCell = document.createElement("TH");
+          headerCell.innerHTML = tripsArray[0][i];
+          row.appendChild(headerCell);
+        }
+
+        //Add the data rows.
+        for (var i = 1; i < tripsArray.length; i++) {
+          row = table.insertRow(-1);
+          for (var j = 0; j < columnCount; j++) {
+            var cell = row.insertCell(-1);
+            cell.innerHTML = tripsArray[i][j];
+          }
+        }
+
+        var dvTable = document.getElementById("dvTable");
+        dvTable.innerHTML = "";
+        dvTable.appendChild(table);
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Stations List</h1>
+    <section style="display: flex">
+      <section
+        style="display: flex; width: 70vw; float: left; flex-direction: column"
+      >
+        <section style="display: flex">
+          <section style="padding-right: 2%">
+            <label for="src-station-names">Choose a dept. station</label>
+            <select
+              onchange="getStationDetails(this);"
+              id="srcstationsList"
+            ></select>
+          </section>
+          <section style="padding-right: 2%">
+            <label for="dest-station-names">Choose a arrival station</label>
+            <select
+              onchange="getTripDetails(this)"
+              id="deststationsList"
+            ></select>
+          </section>
+        </section>
+        <section style="padding-right: 2%; padding-left: 2%; padding-top: 10%" id="tripDetails">
+        </section>
+      </section>
+      <aside id="stationDetails" >
+        <h2 id="srcHeading"></h2>
+        <p id="srcName"></p>
+        <p id="srcAbbr"></p>
+        <p id="srcAddress"></p>
+        <p id="srcCity"></p>
+        <p id="srcCounty"></p>
+        <p id="srcState"></p>
+        <p id="srcZipcode"></p>
+      </aside>
+    </section>
+  </body>
+  <footer></footer>
+</html>

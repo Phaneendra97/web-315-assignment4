@@ -131,13 +131,26 @@
         tripsArray.push(["Sl No", "Dept. Time", "Fare", "ETA"]);
         let index = 1;
         tripDetails.forEach((element) => {
-          let dateString = element["@origTimeMin"];
-          let dateObjSchedule = new Date("01/01/1970 " + dateString);
-          let now = Date.now();
-          if (dateObjSchedule - now > 0 && dateObjSchedule != null) {
-            closestScheduleTimer = dateObjSchedule;
-          }
+          if (closestScheduleTimer == null) {
+            let dateString = element["@origTimeMin"];
+            let timeParts = dateString.split(":");
+            let hours = parseInt(timeParts[0], 10);
+            let minutes = parseInt(timeParts[1], 10);
 
+            if (dateString.indexOf("PM") !== -1 && hours < 12) {
+              hours = hours + 12;
+            }
+
+            var dateObjSchedule = new Date();
+            dateObjSchedule.setHours(hours);
+            dateObjSchedule.setMinutes(minutes);
+            dateObjSchedule.setSeconds(0);
+            dateObjSchedule.setMilliseconds(0);
+            let now = Date.now();
+            if (dateObjSchedule - now > 0) {
+              closestScheduleTimer = dateObjSchedule;
+            }
+          }
           tripsArray.push([
             index,
             element["@origTimeMin"],
@@ -176,6 +189,7 @@
       }
 
       setInterval(updateTripDetails, 30000);
+      setInterval(countDownTimer, 1000);
 
       function updateTripDetails() {
         const tableElement = document.getElementById("dvTable");
@@ -192,11 +206,29 @@
           );
         }
       }
-      // closestScheduleTimer
+      function countDownTimer() {
+        const tableElement = document.getElementById("dvTable");
+        if (tableElement != null) {
+
+          if (closestScheduleTimer - Date.now() > 0) {
+            let countDownTimerElement =
+              document.getElementById("countDownTimer");
+            const timediff = Math.floor(
+              (closestScheduleTimer.getTime() - Date.now()) / 1000
+            );
+            const minutes = Math.floor(timediff / 60); // whole minutes
+            const seconds = timediff % 60; // remaining seconds
+            countDownTimerElement.innerHTML =
+              "<h3>" + "Countdown Timer to next train: " + minutes + ":" + seconds + "</h3>";
+          } else {
+            updateTripDetails();
+          }
+        }
+      }
     </script>
   </head>
   <body>
-    <h1>Stations List</h1>
+    <h1>BART Stations List</h1>
     <section style="display: flex">
       <section
         style="display: flex; width: 70vw; float: left; flex-direction: column"
@@ -221,6 +253,7 @@
           style="padding-right: 2%; padding-left: 2%; padding-top: 10%"
           id="tripDetails"
         ></section>
+        <section style="padding: 2%" id="countDownTimer"></section>
       </section>
       <aside id="stationDetails">
         <h2 id="srcHeading"></h2>

@@ -1,8 +1,15 @@
+<!--The JavaScript same-origin policy (Links to an external site) aims to prevent cross-site request forgery by limiting how resources on
+different hosts can interact with each other. Knowing this, why is it possible for your website to load and display data from the BART API?
+Include your answer as a comment within the HTML markup of your created website. -->
+
+<!-- Answer Part#5: BART APIs work on my website because the BART API server allows CORS (Cross Origin Access) in its configuration 
+  We can observe this in the payload of the response of the request. in the Response Headers we can see a property access-control-allow-origin: *,
+The "*" signifies it allows all CORS -->
+
 <!DOCTYPE html>
 <html>
   <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
-    
   </head>
   <body>
     <h1 id="greeting"></h1>
@@ -253,17 +260,20 @@
     function countDownTimer() {
       const tableElement = document.getElementById("dvTable");
       if (tableElement != null) {
-
         if (closestScheduleTimer - Date.now() > 0) {
-          let countDownTimerElement =
-            document.getElementById("countDownTimer");
+          let countDownTimerElement = document.getElementById("countDownTimer");
           const timediff = Math.floor(
             (closestScheduleTimer.getTime() - Date.now()) / 1000
           );
           const minutes = Math.floor(timediff / 60); // whole minutes
           const seconds = timediff % 60; // remaining seconds
           countDownTimerElement.innerHTML =
-            "<h3>" + "Countdown Timer to next train: " + minutes + ":" + seconds + "</h3>";
+            "<h3>" +
+            "Countdown Timer to next train: " +
+            minutes +
+            ":" +
+            seconds +
+            "</h3>";
         } else {
           updateTripDetails();
         }
@@ -271,14 +281,17 @@
     }
     function generateGreeting() {
       const greeting = document.getElementById("greeting");
-      if(localStorage.getItem("visitCount")==null){
-        greeting.innerHTML = "Hi, Welcome!, you've visited this page " + 1 + " time";
+      if (localStorage.getItem("visitCount") == null) {
+        greeting.innerHTML =
+          "Hi, Welcome!, you've visited this page " + 1 + " time";
         localStorage.setItem("visitCount", 1);
-      }else{
-        let visitCount = parseInt(localStorage.getItem("visitCount"))+1;
+      } else {
+        let visitCount = parseInt(localStorage.getItem("visitCount")) + 1;
         localStorage.setItem("visitCount", visitCount);
-        greeting.innerHTML = "Hi, Welcome again!, you've visited this page " + visitCount + " times";
-        
+        greeting.innerHTML =
+          "Hi, Welcome again!, you've visited this page " +
+          visitCount +
+          " times";
       }
     }
   </script>

@@ -62,8 +62,8 @@ The "*" signifies it allows all CORS -->
     let tripsArray = new Array();
     let closestScheduleTimer = null;
     generateGreeting();
-    $.get("http://localhost:5000/stations", function (data, status) {
-      srcstationsArray = data.data.station;
+    $.get("http://localhost:5000/stationsTest", function (data, status) {
+      srcstationsArray = data.data.root.stations[0].station;
       stationsList("srcstationsList");
     });
     function stationsList(id) {
@@ -85,7 +85,7 @@ The "*" signifies it allows all CORS -->
         } else {
           var option = document.createElement("option"); // create the option element
           option.value = i; // set the value property
-          option.appendChild(document.createTextNode(stationsArray[i].name)); // set the textContent in a safe way.
+          option.appendChild(document.createTextNode(stationsArray[i].name[0])); // set the textContent in a safe way.
           df.appendChild(option); // append the option to the document fragment
         }
       }
@@ -97,14 +97,14 @@ The "*" signifies it allows all CORS -->
       const destStationElement = document.getElementById("deststationsList");
       $(destStationElement).children().remove();
       if (sel.value != 0) {
-        const source = srcstationsArray[sel.value].abbr;
+        const source = srcstationsArray[sel.value].abbr[0];
         selectedSrcStation = source;
         deststationsArray = srcstationsArray.filter((element) => {
-          return element.abbr !== srcstationsArray[sel.value].abbr;
+          return element.abbr !== srcstationsArray[sel.value].abbr[0];
         });
         stationsList("deststationsList");
         $.get(
-          "http://localhost:5000/station/source/" + source,
+          "http://localhost:5000/stationTest/source/" + source,
           function (data, status) {
             stationData = data.station;
             loadStationDetails();
@@ -117,12 +117,12 @@ The "*" signifies it allows all CORS -->
       if (sel.value != 0) {
         selectedDestStation = deststationsArray[sel.value].abbr;
         $.get(
-          "http://localhost:5000/trips/source/" +
+          "http://localhost:5000/tripsTest/source/" +
             selectedSrcStation +
             "/dest/" +
             selectedDestStation,
           function (data, status) {
-            tripDetails = data.trip.schedule.request.trip;
+            tripDetails = data.trip.schedule[0].request[0].trip;
             loadTripDetails();
           }
         );
@@ -136,27 +136,27 @@ The "*" signifies it allows all CORS -->
 
       let srcHeading = document.getElementById("srcHeading");
       srcHeading.innerHTML = "Source Station details";
-
+console.log(stationData)
       let srcName = document.getElementById("srcName");
-      srcName.innerHTML = "Name: " + stationData.name;
+      srcName.innerHTML = "Name: " + stationData[0].name[0];
 
       let srcAbbr = document.getElementById("srcAbbr");
-      srcAbbr.innerHTML = "Abbr: " + stationData.abbr;
+      srcAbbr.innerHTML = "Abbr: " + stationData[0].abbr[0];
 
       let srcAddress = document.getElementById("srcAddress");
-      srcAddress.innerHTML = "Address: " + stationData.address;
+      srcAddress.innerHTML = "Address: " + stationData[0].address[0];
 
       let srcCity = document.getElementById("srcCity");
-      srcCity.innerHTML = "City: " + stationData.city;
+      srcCity.innerHTML = "City: " + stationData[0].city[0];
 
       let srcCounty = document.getElementById("srcCounty");
-      srcCounty.innerHTML = "County: " + stationData.county;
+      srcCounty.innerHTML = "County: " + stationData[0].county[0];
 
       let srcState = document.getElementById("srcState");
-      srcState.innerHTML = "State: " + stationData.state;
+      srcState.innerHTML = "State: " + stationData[0].state[0];
 
       let srcZipcode = document.getElementById("srcZipcode");
-      srcZipcode.innerHTML = "City: " + stationData.zipcode;
+      srcZipcode.innerHTML = "City: " + stationData[0].zipcode[0];
     }
 
     function loadTripDetails() {
@@ -183,7 +183,9 @@ The "*" signifies it allows all CORS -->
       let index = 1;
       tripDetails.forEach((element) => {
         if (closestScheduleTimer == null) {
-          let dateString = element["@origTimeMin"];
+          console.log(element.$);
+          console.log(element.$["origTimeMin"]);
+          let dateString = element.$["origTimeMin"];
           let timeParts = dateString.split(":");
           let hours = parseInt(timeParts[0], 10);
           let minutes = parseInt(timeParts[1], 10);
@@ -204,9 +206,9 @@ The "*" signifies it allows all CORS -->
         }
         tripsArray.push([
           index,
-          element["@origTimeMin"],
-          element["@fare"],
-          element["@destTimeMin"],
+          element.$["origTimeMin"],
+          element.$["fare"],
+          element.$["destTimeMin"],
         ]);
       });
 
@@ -246,12 +248,12 @@ The "*" signifies it allows all CORS -->
       const tableElement = document.getElementById("dvTable");
       if (tableElement != null) {
         $.get(
-          "http://localhost:5000/trips/source/" +
+          "http://localhost:5000/tripsTest/source/" +
             selectedSrcStation +
             "/dest/" +
             selectedDestStation,
           function (data, status) {
-            tripDetails = data.trip.schedule.request.trip;
+            tripDetails = data.trip.schedule[0].request[0].trip;
             loadTripDetails();
           }
         );

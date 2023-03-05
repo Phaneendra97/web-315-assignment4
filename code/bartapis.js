@@ -16,86 +16,8 @@ module.exports = function (app) {
     next();
   });
 
-  // app.get("/stations", (req, apiResponse) => {
-  //   axios
-  //     .get(
-  //       "https://api.bart.gov/api/stn.aspx?cmd=stns&key=MW9S-E7SL-26DU-VV8V&json=y"
-  //     )
 
-  //     // Show response data
-  //     .then((res) => {
-  //       const buffer = Buffer.from(res.data);
-  //       let jsonData = xmlParser.toJson(buffer);
-  //       console.log(jsonData);
-  //       apiResponse.send({
-  //         data: res.data.root.stations,
-  //       });
-  //     })
-  //     .catch((err) => {
-  //       console.log(err);
-  //       apiResponse.status(200);
-  //       apiResponse.send({
-  //         error: JSON.stringify(err),
-  //       });
-  //     });
-  // });
-
-  // app.get("/trips/source/:srcaddr/dest/:destaddr", function (req, apiResponse) {
-  //   var source = req.params["srcaddr"];
-  //   var destination = req.params["destaddr"];
-  //   console.log(source);
-  //   console.log(destination);
-  //   const url =
-  //     "https://api.bart.gov/api/sched.aspx?cmd=depart&orig=" +
-  //     source +
-  //     "&dest=" +
-  //     destination +
-  //     "&date=now&key=MW9S-E7SL-26DU-VV8V&b=2&a=2&l=1&json=y";
-  //   console.log(url);
-  //   axios
-  //     .get(url)
-
-  //     // Show response data
-  //     .then((res) => {
-  //       console.log(res.data);
-  //       apiResponse.send({
-  //         trip: res.data.root,
-  //       });
-  //     })
-  //     .catch((err) => {
-  //       console.log(err);
-  //       apiResponse.status(200);
-  //       apiResponse.send({
-  //         error: JSON.stringify(err),
-  //       });
-  //     });
-  // });
-
-  // app.get("/station/source/:source", function (req, apiResponse) {
-  //   var source = req.params["source"];
-  //   axios
-  //     .get(
-  //       "https://api.bart.gov/api/stn.aspx?cmd=stninfo&orig=" +
-  //         source +
-  //         "&key=MW9S-E7SL-26DU-VV8V&json=y"
-  //     )
-
-  //     // Show response data
-  //     .then((res) => {
-  //       apiResponse.send({
-  //         station: res.data.root.stations.station,
-  //       });
-  //     })
-  //     .catch((err) => {
-  //       console.log(err);
-  //       apiResponse.status(200);
-  //       apiResponse.send({
-  //         error: JSON.stringify(err),
-  //       });
-  //     });
-  // });
-
-  app.get("/stationsTest", (req, apiResponse) => {
+  app.get("/stations", (req, apiResponse) => {
     const url =
       "https://api.bart.gov/api/stn.aspx?cmd=stns&key=MW9S-E7SL-26DU-VV8V";
 
@@ -128,7 +50,7 @@ module.exports = function (app) {
       });
   });
 
-  app.get("/stationTest/source/:source", function (req, apiResponse) {
+  app.get("/station/source/:source", function (req, apiResponse) {
     var source = req.params["source"];
     const url =
       "https://api.bart.gov/api/stn.aspx?cmd=stninfo&orig=" +
@@ -164,7 +86,7 @@ module.exports = function (app) {
       });
   });
 
-  app.get("/tripsTest/source/:srcaddr/dest/:destaddr", function (req, apiResponse) {
+  app.get("/trips/source/:srcaddr/dest/:destaddr", function (req, apiResponse) {
     var source = req.params["srcaddr"];
     var destination = req.params["destaddr"];
     const url =

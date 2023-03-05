@@ -62,7 +62,7 @@ The "*" signifies it allows all CORS -->
     let tripsArray = new Array();
     let closestScheduleTimer = null;
     generateGreeting();
-    $.get("http://localhost:5000/stationsTest", function (data, status) {
+    $.get("http://localhost:5000/stations", function (data, status) {
       srcstationsArray = data.data.root.stations[0].station;
       stationsList("srcstationsList");
     });
@@ -100,11 +100,11 @@ The "*" signifies it allows all CORS -->
         const source = srcstationsArray[sel.value].abbr[0];
         selectedSrcStation = source;
         deststationsArray = srcstationsArray.filter((element) => {
-          return element.abbr !== srcstationsArray[sel.value].abbr[0];
+          return element.abbr[0] !== srcstationsArray[sel.value].abbr[0];
         });
         stationsList("deststationsList");
         $.get(
-          "http://localhost:5000/stationTest/source/" + source,
+          "http://localhost:5000/station/source/" + source,
           function (data, status) {
             stationData = data.station;
             loadStationDetails();
@@ -117,7 +117,7 @@ The "*" signifies it allows all CORS -->
       if (sel.value != 0) {
         selectedDestStation = deststationsArray[sel.value].abbr;
         $.get(
-          "http://localhost:5000/tripsTest/source/" +
+          "http://localhost:5000/trips/source/" +
             selectedSrcStation +
             "/dest/" +
             selectedDestStation,
@@ -136,7 +136,7 @@ The "*" signifies it allows all CORS -->
 
       let srcHeading = document.getElementById("srcHeading");
       srcHeading.innerHTML = "Source Station details";
-console.log(stationData)
+
       let srcName = document.getElementById("srcName");
       srcName.innerHTML = "Name: " + stationData[0].name[0];
 
@@ -183,8 +183,7 @@ console.log(stationData)
       let index = 1;
       tripDetails.forEach((element) => {
         if (closestScheduleTimer == null) {
-          console.log(element.$);
-          console.log(element.$["origTimeMin"]);
+         
           let dateString = element.$["origTimeMin"];
           let timeParts = dateString.split(":");
           let hours = parseInt(timeParts[0], 10);
@@ -248,7 +247,7 @@ console.log(stationData)
       const tableElement = document.getElementById("dvTable");
       if (tableElement != null) {
         $.get(
-          "http://localhost:5000/tripsTest/source/" +
+          "http://localhost:5000/trips/source/" +
             selectedSrcStation +
             "/dest/" +
             selectedDestStation,

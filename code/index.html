@@ -1,61 +1,395 @@
+<!--The JavaScript same-origin policy (Links to an external site) aims to prevent cross-site request forgery by limiting how resources on
+different hosts can interact with each other. Knowing this, why is it possible for your website to load and display data from the BART API?
+Include your answer as a comment within the HTML markup of your created website. -->
+
+<!-- Answer Part#5: BART APIs work on my website because the BART API server allows CORS (Cross Origin Access) in its configuration 
+  We can observe this in the payload of the response of the request. in the Response Headers we can see a property access-control-allow-origin: *,
+The "*" signifies it allows all CORS -->
+
 <!DOCTYPE html>
 <html>
-<head>
-  <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
-  <meta charset="utf-8">
-  <title>Directions Service with Time</title>
-  <style>
-    #map {
-      height: 100%;
-    }
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHrkVeYnOWUQmbnZGBg6IPhM4vtoK2Amk"
+      async
+      defer
+    ></script>
+    <style>
+      #map {
+        height: 40%;
+        width: 50%;
+
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 20px;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="greeting"></h1>
+    <h1>BART Stations List</h1>
+    <section style="display: flex">
+      <section
+        style="display: flex; width: 70vw; float: left; flex-direction: column"
+      >
+        <section style="display: flex">
+          <section style="padding-right: 2%">
+            <label for="src-station-names">Choose a dept. station</label>
+            <select
+              onchange="getStationDetails(this);"
+              id="srcstationsList"
+            ></select>
+          </section>
+          <section style="padding-right: 2%">
+            <label for="dest-station-names">Choose a arrival station</label>
+            <select
+              onchange="getTripDetails(this)"
+              id="deststationsList"
+            ></select>
+          </section>
+        </section>
+        <section
+          style="padding-right: 2%; padding-left: 2%; padding-top: 10%"
+          id="tripDetails"
+        ></section>
+        <section style="padding: 2%" id="countDownTimer"></section>
+      </section>
+      <aside id="stationDetails">
+        <h2 id="srcHeading"></h2>
+        <p id="srcName"></p>
+        <p id="srcAbbr"></p>
+        <p id="srcAddress"></p>
+        <p id="srcCity"></p>
+        <p id="srcCounty"></p>
+        <p id="srcState"></p>
+        <p id="srcZipcode"></p>
+      </aside>
+    </section>
+    <section id="map">
+    </section>
+  </body>
   <script>
-    function initMap() {
-      // Create a map object and specify the center and zoom level
-      const map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 37.7749, lng: -122.4194 },
-        zoom: 13,
+    let srcstationsArray = [];
+    let deststationsArray = [];
+    let stationData = {};
+    let tripDetails = {};
+    let selectedSrcStation = "";
+    let selectedDestStation = "";
+    let tripsArray = new Array();
+    let closestScheduleTimer = null;
+    let needToRenderMap = false;
+    let startLatLong = [0,0];
+    let endLatLong = [0,0];
+    generateGreeting();
+    $.get("http://localhost:5000/stations", function (data, status) {
+      srcstationsArray = data.data.root.stations[0].station;
+      stationsList("srcstationsList");
+    });
+    function stationsList(id) {
+      let elm = document.getElementById(id), // get the select
+        df = document.createDocumentFragment(); // create a document fragment to hold the options while we create them
+      let stationsArray = [];
+      if (id == "srcstationsList") {
+        stationsArray = srcstationsArray;
+      } else {
+        stationsArray = deststationsArray;
+      }
+
+      for (var i = 0; i < stationsArray.length; i++) {
+        if (i == 0) {
+          var option = document.createElement("option"); // create the option element
+          option.value = i; // set the value property
+          option.appendChild(document.createTextNode("select a station")); // set the textContent in a safe way.
+          df.appendChild(option); // append the option to the document fragment
+        } else {
+          var option = document.createElement("option"); // create the option element
+          option.value = i; // set the value property
+          option.appendChild(document.createTextNode(stationsArray[i].name[0])); // set the textContent in a safe way.
+          df.appendChild(option); // append the option to the document fragment
+        }
+      }
+      elm.appendChild(df); // append the document fragment to the DOM. this is the better way rather than setting innerHTML a bunch of times (or even once with a long string)
+    }
+
+    function getStationDetails(sel) {
+      deststationsArray = [];
+      const destStationElement = document.getElementById("deststationsList");
+      $(destStationElement).children().remove();
+      if (sel.value != 0) {
+        const source = srcstationsArray[sel.value].abbr[0];
+        selectedSrcStation = source;
+        deststationsArray = srcstationsArray.filter((element) => {
+          return element.abbr[0] !== srcstationsArray[sel.value].abbr[0];
+        });
+        stationsList("deststationsList");
+        $.get(
+          "http://localhost:5000/station/source/" + source,
+          function (data, status) {
+            stationData = data.station;
+            loadStationDetails();
+          }
+        );
+      }
+    }
+
+    function getTripDetails(sel) {
+      if (sel.value != 0) {
+        selectedDestStation = deststationsArray[sel.value].abbr;
+        $.get(
+          "http://localhost:5000/trips/source/" +
+            selectedSrcStation +
+            "/dest/" +
+            selectedDestStation,
+          function (data, status) {
+            tripDetails = data.trip.schedule[0].request[0].trip;
+            loadTripDetails();
+          }
+        );
+      }
+    }
+
+    function loadStationDetails() {
+      let stationDetailsDOM = document.getElementById("stationDetails");
+      stationDetailsDOM.style =
+        "width: 25vw; float: right; padding-left: 10px; border-width: 2px; border-color: black; border-style: solid;";
+
+      let srcHeading = document.getElementById("srcHeading");
+      srcHeading.innerHTML = "Source Station details";
+
+      let srcName = document.getElementById("srcName");
+      srcName.innerHTML = "Name: " + stationData[0].name[0];
+
+      let srcAbbr = document.getElementById("srcAbbr");
+      srcAbbr.innerHTML = "Abbr: " + stationData[0].abbr[0];
+
+      let srcAddress = document.getElementById("srcAddress");
+      srcAddress.innerHTML = "Address: " + stationData[0].address[0];
+
+      let srcCity = document.getElementById("srcCity");
+      srcCity.innerHTML = "City: " + stationData[0].city[0];
+
+      let srcCounty = document.getElementById("srcCounty");
+      srcCounty.innerHTML = "County: " + stationData[0].county[0];
+
+      let srcState = document.getElementById("srcState");
+      srcState.innerHTML = "State: " + stationData[0].state[0];
+
+      let srcZipcode = document.getElementById("srcZipcode");
+      srcZipcode.innerHTML = "City: " + stationData[0].zipcode[0];
+    }
+
+    function loadTripDetails() {
+      const tripDetailsElement = document.getElementById("tripDetails");
+      $(tripDetailsElement).children().remove();
+      let tripHeading = document.createElement("h2"); // create the option element
+      tripHeading.innerHTML =
+        "Trip details between: " +
+        selectedSrcStation +
+        "-" +
+        selectedDestStation; // set the value property
+      let tableElement = document.createElement("div");
+      tableElement.id = "dvTable";
+      tripDetailsElement.appendChild(tripHeading);
+      tripDetailsElement.appendChild(tableElement);
+      generateTable();
+      generateMap();
+    }
+
+    function generateTable() {
+      //Build an array containing Customer records.
+      closestScheduleTimer = null;
+      tripsArray = [];
+      tripsArray.push(["Sl No", "Dept. Time", "Fare", "ETA"]);
+      let index = 1;
+      tripDetails.forEach((element) => {
+        if (closestScheduleTimer == null) {
+          let dateString = element.$["origTimeMin"];
+          let timeParts = dateString.split(":");
+          let hours = parseInt(timeParts[0], 10);
+          let minutes = parseInt(timeParts[1], 10);
+
+          if (dateString.indexOf("PM") !== -1 && hours < 12) {
+            hours = hours + 12;
+          }
+
+          var dateObjSchedule = new Date();
+          dateObjSchedule.setHours(hours);
+          dateObjSchedule.setMinutes(minutes);
+          dateObjSchedule.setSeconds(0);
+          dateObjSchedule.setMilliseconds(0);
+          let now = Date.now();
+          if (dateObjSchedule - now > 0) {
+            closestScheduleTimer = dateObjSchedule;
+          }
+        }
+        tripsArray.push([
+          index,
+          element.$["origTimeMin"],
+          element.$["fare"],
+          element.$["destTimeMin"],
+        ]);
+        index++;
       });
 
-      // Create a DirectionsService object to get directions
-      const directionsService = new google.maps.DirectionsService();
+      //Create a HTML Table element.
+      var table = document.createElement("TABLE");
+      table.border = "1";
 
-      // Create a DirectionsRenderer object to display directions on the map
-      const directionsRenderer = new google.maps.DirectionsRenderer();
-      directionsRenderer.setMap(map);
+      //Get the count of columns.
+      var columnCount = tripsArray[0].length;
 
-      // Specify the starting and ending locations by their latitude and longitude coordinates
-      const start = new google.maps.LatLng(37.7749, -122.4194);
-      const end = new google.maps.LatLng(37.8199, -122.4783);
+      //Add the header row.
+      var row = table.insertRow(-1);
+      for (var i = 0; i < columnCount; i++) {
+        var headerCell = document.createElement("TH");
+        headerCell.innerHTML = tripsArray[0][i];
+        row.appendChild(headerCell);
+      }
 
-      // Create a DirectionsRequest object to specify the start, end, and travel mode
-      const request = {
-        origin: start,
-        destination: end,
-        travelMode: google.maps.TravelMode.TRANSIT,
-        drivingOptions: {
-          departureTime: new Date(Date.now()),
-          trafficModel: 'bestguess'
+      //Add the data rows.
+      for (var i = 1; i < tripsArray.length; i++) {
+        row = table.insertRow(-1);
+        for (var j = 0; j < columnCount; j++) {
+          var cell = row.insertCell(-1);
+          cell.innerHTML = tripsArray[i][j];
         }
-      };
+      }
 
-      // Call the DirectionsService route() method to get directions
-      directionsService.route(request, function(result, status) {
-        if (status == google.maps.DirectionsStatus.OK) {
-          // Display the directions on the map using the DirectionsRenderer object
-          directionsRenderer.setDirections(result);
+      var dvTable = document.getElementById("dvTable");
+      dvTable.innerHTML = "";
+      dvTable.appendChild(table);
+    }
+
+    setInterval(updateTripDetails, 30000);
+    setInterval(countDownTimer, 1000);
+
+    function updateTripDetails() {
+      const tableElement = document.getElementById("dvTable");
+      if (tableElement != null) {
+        $.get(
+          "http://localhost:5000/trips/source/" +
+            selectedSrcStation +
+            "/dest/" +
+            selectedDestStation,
+          function (data, status) {
+            tripDetails = data.trip.schedule[0].request[0].trip;
+            loadTripDetails();
+          }
+        );
+      }
+    }
+    function countDownTimer() {
+      const tableElement = document.getElementById("dvTable");
+      if (tableElement != null) {
+        if (closestScheduleTimer - Date.now() > 0) {
+          let countDownTimerElement = document.getElementById("countDownTimer");
+          const timediff = Math.floor(
+            (closestScheduleTimer.getTime() - Date.now()) / 1000
+          );
+          const minutes = Math.floor(timediff / 60); // whole minutes
+          const seconds = timediff % 60; // remaining seconds
+          countDownTimerElement.innerHTML =
+            "<h3>" +
+            "Countdown Timer to next train: " +
+            minutes +
+            ":" +
+            seconds +
+            "</h3>";
+        } else {
+          updateTripDetails();
         }
-      });
+      }
+    }
+    function generateGreeting() {
+      const greeting = document.getElementById("greeting");
+      if (localStorage.getItem("visitCount") == null) {
+        greeting.innerHTML =
+          "Hi, Welcome!, you've visited this page " + 1 + " time";
+        localStorage.setItem("visitCount", 1);
+      } else {
+        let visitCount = parseInt(localStorage.getItem("visitCount")) + 1;
+        localStorage.setItem("visitCount", visitCount);
+        greeting.innerHTML =
+          "Hi, Welcome again!, you've visited this page " +
+          visitCount +
+          " times";
+      }
+    }
+
+    function generateMap() {
+      let prevStartLatLong = [];
+      let prevEndLatLong = [];
+
+      prevStartLatLong[0] = startLatLong[0];
+      prevStartLatLong[1] = startLatLong[1];
+
+      prevEndLatLong[0] = endLatLong[0];
+      prevEndLatLong[1] = endLatLong[1];
+
+      startLatLong[0] = stationData[0].gtfs_latitude[0];
+      startLatLong[1] = stationData[0].gtfs_longitude[0];
+
+      for (let index = 0; index < deststationsArray.length; index++) {
+        if (selectedDestStation == deststationsArray[index].abbr[0]) {
+          endLatLong[0] = deststationsArray[index].gtfs_latitude[0];
+          endLatLong[1] = deststationsArray[index].gtfs_longitude[0];
+          break;
+        }
+      }
+
+      if (
+        prevStartLatLong[0] !== startLatLong[0] ||
+        prevStartLatLong[1] !== startLatLong[1] ||
+        prevEndLatLong[0] !== endLatLong[0] ||
+        prevEndLatLong[1] !== endLatLong[1]
+      ) {
+        needToRenderMap = true;
+      }
+
+      if (needToRenderMap) {
+
+        // Create a map object and specify the center and zoom level
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 37.7749, lng: -122.4194 },
+          zoom: 13,
+        });
+
+        // Create a DirectionsService object to get directions
+        const directionsService = new google.maps.DirectionsService();
+
+        // Create a DirectionsRenderer object to display directions on the map
+        const directionsRenderer = new google.maps.DirectionsRenderer();
+        directionsRenderer.setMap(map);
+
+        // Specify the starting and ending locations by their latitude and longitude coordinates
+        const start = new google.maps.LatLng(startLatLong[0], startLatLong[1]);
+        const end = new google.maps.LatLng(endLatLong[0], endLatLong[1]);
+
+        // Create a DirectionsRequest object to specify the start, end, and travel mode
+        const request = {
+          origin: start,
+          destination: end,
+          travelMode: google.maps.TravelMode.TRANSIT,
+          drivingOptions: {
+            departureTime: closestScheduleTimer,
+            trafficModel: "bestguess",
+          },
+        };
+
+        // Call the DirectionsService route() method to get directions
+        directionsService.route(request, function (result, status) {
+          if (status == google.maps.DirectionsStatus.OK) {
+            // Display the directions on the map using the DirectionsRenderer object
+            directionsRenderer.setDirections(result);
+          }
+        });
+        needToRenderMap = false;
+      }
     }
   </script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHrkVeYnOWUQmbnZGBg6IPhM4vtoK2Amk&callback=initMap" async defer></script>
-</body>
+  <footer></footer>
 </html>

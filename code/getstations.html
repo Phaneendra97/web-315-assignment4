@@ -10,6 +10,24 @@ The "*" signifies it allows all CORS -->
 <html>
   <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHrkVeYnOWUQmbnZGBg6IPhM4vtoK2Amk"
+      async
+      defer
+    ></script>
+    <style>
+      #map {
+        height: 50%;
+        width: 50%;
+        margin: 20px;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
   </head>
   <body>
     <h1 id="greeting"></h1>
@@ -51,6 +69,7 @@ The "*" signifies it allows all CORS -->
         <p id="srcZipcode"></p>
       </aside>
     </section>
+    <section id="map"></section>
   </body>
   <script>
     let srcstationsArray = [];
@@ -61,6 +80,9 @@ The "*" signifies it allows all CORS -->
     let selectedDestStation = "";
     let tripsArray = new Array();
     let closestScheduleTimer = null;
+    let needToRenderMap = false;
+    let startLatLong = [0,0];
+    let endLatLong = [0,0];
     generateGreeting();
     $.get("http://localhost:5000/stations", function (data, status) {
       srcstationsArray = data.data.root.stations[0].station;
@@ -173,6 +195,7 @@ The "*" signifies it allows all CORS -->
       tripDetailsElement.appendChild(tripHeading);
       tripDetailsElement.appendChild(tableElement);
       generateTable();
+      generateMap();
     }
 
     function generateTable() {
@@ -183,7 +206,6 @@ The "*" signifies it allows all CORS -->
       let index = 1;
       tripDetails.forEach((element) => {
         if (closestScheduleTimer == null) {
-         
           let dateString = element.$["origTimeMin"];
           let timeParts = dateString.split(":");
           let hours = parseInt(timeParts[0], 10);
@@ -209,6 +231,7 @@ The "*" signifies it allows all CORS -->
           element.$["fare"],
           element.$["destTimeMin"],
         ]);
+        index++;
       });
 
       //Create a HTML Table element.
@@ -293,6 +316,77 @@ The "*" signifies it allows all CORS -->
           "Hi, Welcome again!, you've visited this page " +
           visitCount +
           " times";
+      }
+    }
+
+    function generateMap() {
+      let prevStartLatLong = [];
+      let prevEndLatLong = [];
+
+      prevStartLatLong[0] = startLatLong[0];
+      prevStartLatLong[1] = startLatLong[1];
+
+      prevEndLatLong[0] = endLatLong[0];
+      prevEndLatLong[1] = endLatLong[1];
+
+      startLatLong[0] = stationData[0].gtfs_latitude[0];
+      startLatLong[1] = stationData[0].gtfs_longitude[0];
+
+      for (let index = 0; index < deststationsArray.length; index++) {
+        if (selectedDestStation == deststationsArray[index].abbr[0]) {
+          endLatLong[0] = deststationsArray[index].gtfs_latitude[0];
+          endLatLong[1] = deststationsArray[index].gtfs_longitude[0];
+          break;
+        }
+      }
+
+      if (
+        prevStartLatLong[0] !== startLatLong[0] ||
+        prevStartLatLong[1] !== startLatLong[1] ||
+        prevEndLatLong[0] !== endLatLong[0] ||
+        prevEndLatLong[1] !== endLatLong[1]
+      ) {
+        needToRenderMap = true;
+      }
+
+      if (needToRenderMap) {
+
+        // Create a map object and specify the center and zoom level
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 37.7749, lng: -122.4194 },
+          zoom: 13,
+        });
+
+        // Create a DirectionsService object to get directions
+        const directionsService = new google.maps.DirectionsService();
+
+        // Create a DirectionsRenderer object to display directions on the map
+        const directionsRenderer = new google.maps.DirectionsRenderer();
+        directionsRenderer.setMap(map);
+
+        // Specify the starting and ending locations by their latitude and longitude coordinates
+        const start = new google.maps.LatLng(startLatLong[0], startLatLong[1]);
+        const end = new google.maps.LatLng(endLatLong[0], endLatLong[1]);
+
+        // Create a DirectionsRequest object to specify the start, end, and travel mode
+        const request = {
+          origin: start,
+          destination: end,
+          travelMode: google.maps.TravelMode.TRANSIT,
+          drivingOptions: {
+            departureTime: closestScheduleTimer,
+            trafficModel: "bestguess",
+          },
+        };
+
+        // Call the DirectionsService route() method to get directions
+        directionsService.route(request, function (result, status) {
+          if (status == google.maps.DirectionsStatus.OK) {
+            // Display the directions on the map using the DirectionsRenderer object
+            directionsRenderer.setDirections(result);
+          }
+        });
+        needToRenderMap = false;
       }
     }
   </script>

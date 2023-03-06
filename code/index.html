@@ -9,7 +9,9 @@ The "*" signifies it allows all CORS -->
 <!DOCTYPE html>
 <html>
   <head>
+    <!-- Jquery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <!-- Directions API -->
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHrkVeYnOWUQmbnZGBg6IPhM4vtoK2Amk"
       async
@@ -84,11 +86,13 @@ The "*" signifies it allows all CORS -->
     let needToRenderMap = false;
     let startLatLong = [0,0];
     let endLatLong = [0,0];
+    // Generate greeting with page counter
     generateGreeting();
-    $.get("http://localhost:5000/stations", function (data, status) {
+    $.get("https://api.razlator.online/stations", function (data, status) {
       srcstationsArray = data.data.root.stations[0].station;
       stationsList("srcstationsList");
     });
+    // list all stations and generate the options menu
     function stationsList(id) {
       let elm = document.getElementById(id), // get the select
         df = document.createDocumentFragment(); // create a document fragment to hold the options while we create them
@@ -114,7 +118,7 @@ The "*" signifies it allows all CORS -->
       }
       elm.appendChild(df); // append the document fragment to the DOM. this is the better way rather than setting innerHTML a bunch of times (or even once with a long string)
     }
-
+    //  get source station details
     function getStationDetails(sel) {
       deststationsArray = [];
       const destStationElement = document.getElementById("deststationsList");
@@ -127,7 +131,7 @@ The "*" signifies it allows all CORS -->
         });
         stationsList("deststationsList");
         $.get(
-          "http://localhost:5000/station/source/" + source,
+          "https://api.razlator.online/station/source/" + source,
           function (data, status) {
             stationData = data.station;
             loadStationDetails();
@@ -135,12 +139,12 @@ The "*" signifies it allows all CORS -->
         );
       }
     }
-
+    // get trip details using source and dest abbrs
     function getTripDetails(sel) {
       if (sel.value != 0) {
         selectedDestStation = deststationsArray[sel.value].abbr;
         $.get(
-          "http://localhost:5000/trips/source/" +
+          "https://api.razlator.online/trips/source/" +
             selectedSrcStation +
             "/dest/" +
             selectedDestStation,
@@ -151,7 +155,7 @@ The "*" signifies it allows all CORS -->
         );
       }
     }
-
+    // load source station details and render them on HTML 
     function loadStationDetails() {
       let stationDetailsDOM = document.getElementById("stationDetails");
       stationDetailsDOM.style =
@@ -181,7 +185,7 @@ The "*" signifies it allows all CORS -->
       let srcZipcode = document.getElementById("srcZipcode");
       srcZipcode.innerHTML = "City: " + stationData[0].zipcode[0];
     }
-
+    // load trip details and render on HTML
     function loadTripDetails() {
       const tripDetailsElement = document.getElementById("tripDetails");
       $(tripDetailsElement).children().remove();
@@ -198,7 +202,7 @@ The "*" signifies it allows all CORS -->
       generateTable();
       generateMap();
     }
-
+    // generate table of schedule
     function generateTable() {
       //Build an array containing Customer records.
       closestScheduleTimer = null;
@@ -266,12 +270,12 @@ The "*" signifies it allows all CORS -->
 
     setInterval(updateTripDetails, 30000);
     setInterval(countDownTimer, 1000);
-
+    //  update trip details every 30secs
     function updateTripDetails() {
       const tableElement = document.getElementById("dvTable");
       if (tableElement != null) {
         $.get(
-          "http://localhost:5000/trips/source/" +
+          "https://api.razlator.online//trips/source/" +
             selectedSrcStation +
             "/dest/" +
             selectedDestStation,
@@ -282,6 +286,7 @@ The "*" signifies it allows all CORS -->
         );
       }
     }
+    // countdown the time till its next dept. time
     function countDownTimer() {
       const tableElement = document.getElementById("dvTable");
       if (tableElement != null) {
@@ -304,6 +309,7 @@ The "*" signifies it allows all CORS -->
         }
       }
     }
+    // generate greeting and display page visits
     function generateGreeting() {
       const greeting = document.getElementById("greeting");
       if (localStorage.getItem("visitCount") == null) {
@@ -319,7 +325,7 @@ The "*" signifies it allows all CORS -->
           " times";
       }
     }
-
+    // pass data and call directions api
     function generateMap() {
       let prevStartLatLong = [];
       let prevEndLatLong = [];

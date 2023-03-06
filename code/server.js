@@ -2,7 +2,6 @@ const express = require("express");
 const app = express();
 const port = 5000;
 require("./bartapis")(app);
-// require("./api")(app);
 
 app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");

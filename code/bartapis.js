@@ -73,10 +73,17 @@ module.exports = function (app) {
               console.error(err);
             } else {
               // Convert the JavaScript object to JSON
-              apiResponse.status(200);
-              apiResponse.send({
-                station: result.root.stations[0].station,
-              });
+              if(result.root && result.root.stations &&  result.root.stations[0] && result.root.stations[0].station){
+                apiResponse.status(200);
+                apiResponse.send({
+                  station: result.root.stations[0].station,
+                });
+              }else{
+                apiResponse.status(400);
+                apiResponse.send({
+                  message: "bad request",
+                });
+              }
             }
           });
         });
